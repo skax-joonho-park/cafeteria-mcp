@@ -33,12 +33,18 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
 
+  const url = new URL(req.url);
+  if (shouldForwardToSeoul(req, url)) {
+    return forwardToSeoul(req, url);
+  }
+
   if (req.method === "GET") {
     return json({
       ok: true,
       server: serverInfo,
       endpoint: "/cafeteria-mcp",
       transport: "http-json-rpc",
+      regionForwarding: "ap-northeast-2",
     });
   }
 
@@ -54,6 +60,36 @@ Deno.serve(async (req) => {
     return json(jsonRpcError(null, -32700, error instanceof Error ? error.message : String(error)), 400);
   }
 });
+
+function shouldForwardToSeoul(req: Request, url: URL) {
+  if (url.searchParams.get("regionForwarded") === "1") return false;
+  if (url.searchParams.get("forceFunctionRegion") === "ap-northeast-2") return false;
+  if (req.headers.get("x-region") === "ap-northeast-2") return false;
+  return true;
+}
+
+async function forwardToSeoul(req: Request, url: URL) {
+  const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer();
+  url.searchParams.set("forceFunctionRegion", "ap-northeast-2");
+  url.searchParams.set("regionForwarded", "1");
+
+  const headers = new Headers(req.headers);
+  headers.set("x-region", "ap-northeast-2");
+  headers.delete("host");
+  headers.delete("content-length");
+
+  const response = await fetch(url, {
+    method: req.method,
+    headers,
+    body,
+  });
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+}
 
 async function handleJsonRpc(message: Record<string, unknown>) {
   if (message.method === "initialize") {
