@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "cafeteria": {
+      "command": "node",
+      "args": [
+        "/Users/a06721/Documents/Codex/2026-06-08/m365-api-mcp-request-url-https/src/server.mjs"
+      ]
+    }
+  }
+}

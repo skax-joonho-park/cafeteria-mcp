@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: cafeteria-mcp
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.1
+      - key: MCP_TRANSPORT
+        value: http
+      - key: CAFETERIA_API_URL
+        sync: false
+      - key: CAFETERIA_CAMPUS
+        sync: false
+      - key: CAFETERIA_SEQ
+        sync: false
+      - key: CAFETERIA_ORIGIN
+        sync: false

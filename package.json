@@ -1,0 +1,20 @@
+{
+  "name": "cafeteria-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Configurable MCP server for cafeteria menu lookup.",
+  "bin": {
+    "cafeteria-mcp": "./src/server.mjs"
+  },
+  "scripts": {
+    "start": "node ./src/server.mjs",
+    "start:http": "MCP_TRANSPORT=http node ./src/server.mjs",
+    "test:api": "node ./scripts/test-api.mjs",
+    "test:mcp": "node ./scripts/test-mcp.mjs",
+    "test:sse": "node ./scripts/test-sse.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
