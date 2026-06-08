@@ -2,6 +2,8 @@
 
 Configurable MCP server for cafeteria menu lookup.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/skax-joonho-park/cafeteria-mcp.git)
+
 The server exposes a single MCP tool, `get_cafeteria_menu`, and supports stdio plus HTTP/SSE transports.
 
 ## Configuration
