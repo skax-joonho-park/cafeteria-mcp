@@ -76,6 +76,27 @@ https://<render-service-name>.onrender.com/sse
 
 See [outputs/render-sse-mcp.md](outputs/render-sse-mcp.md) for a short registration note.
 
+## Supabase Probe
+
+This repository also includes a Supabase Edge Function probe at `supabase/functions/cafeteria-probe`.
+Use it before porting the MCP server to confirm whether the Supabase runtime can reach the cafeteria API.
+
+Required Supabase secrets:
+
+```text
+CAFETERIA_API_URL
+CAFETERIA_CAMPUS
+CAFETERIA_SEQ
+CAFETERIA_ORIGIN
+```
+
+Probe URLs after deployment:
+
+```text
+https://<project-ref>.functions.supabase.co/cafeteria-probe?target=google
+https://<project-ref>.functions.supabase.co/cafeteria-probe?target=cafeteria&ymd=20260608&mealType=LN
+```
+
 ## Tests
 
 ```bash
