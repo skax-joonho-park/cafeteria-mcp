@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import http from "node:http";
 import { randomUUID } from "node:crypto";
+import dns from "node:dns/promises";
+import net from "node:net";
+import tls from "node:tls";
 import { stdin, stdout } from "node:process";
 import { fetchCafeteriaMenu, formatMenu } from "./cafeteria.mjs";
 
@@ -215,6 +218,26 @@ function startHttp() {
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/diag/network") {
+      const target = url.searchParams.get("target");
+      const targets = {
+        google: "https://www.google.com/",
+        cafeteria: process.env.CAFETERIA_API_URL || ""
+      };
+      const targetUrl = target && Object.hasOwn(targets, target) ? targets[target] : "";
+
+      if (!targetUrl) {
+        res.writeHead(400, { "content-type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({ ok: false, error: "Use target=google or target=cafeteria." }));
+        return;
+      }
+
+      const result = await diagnoseNetwork(new URL(targetUrl));
+      res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+      res.end(JSON.stringify({ target, ...result }));
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/sse") {
       const sessionId = randomUUID();
       res.writeHead(200, {
@@ -286,6 +309,98 @@ function startHttp() {
     const host = process.env.RENDER_EXTERNAL_HOSTNAME || `127.0.0.1:${port}`;
     console.error(`${SERVER_INFO.name} listening on http://${host}/mcp`);
   });
+}
+
+async function diagnoseNetwork(url) {
+  const hostname = url.hostname;
+  const port = Number(url.port || (url.protocol === "https:" ? 443 : 80));
+  const result = { hostname, port, dns: null, tcp: null, tls: null };
+
+  const dnsStarted = Date.now();
+  try {
+    const addresses = await dns.lookup(hostname, { all: true });
+    result.dns = {
+      ok: true,
+      elapsedMs: Date.now() - dnsStarted,
+      addresses: addresses.map((item) => ({ address: item.address, family: item.family }))
+    };
+  } catch (error) {
+    result.dns = formatDiagError(error, dnsStarted);
+    return result;
+  }
+
+  const ipv4 = result.dns.addresses.find((item) => item.family === 4)?.address;
+  const address = ipv4 || result.dns.addresses[0]?.address;
+
+  const tcpStarted = Date.now();
+  try {
+    await connectTcp({ host: address, port, servername: hostname, timeoutMs: 10000 });
+    result.tcp = { ok: true, elapsedMs: Date.now() - tcpStarted, address };
+  } catch (error) {
+    result.tcp = { ...formatDiagError(error, tcpStarted), address };
+    return result;
+  }
+
+  if (url.protocol !== "https:") return result;
+
+  const tlsStarted = Date.now();
+  try {
+    const info = await connectTls({ host: address, port, servername: hostname, timeoutMs: 10000 });
+    result.tls = { ok: true, elapsedMs: Date.now() - tlsStarted, authorized: info.authorized, authorizationError: info.authorizationError };
+  } catch (error) {
+    result.tls = formatDiagError(error, tlsStarted);
+  }
+
+  return result;
+}
+
+function connectTcp({ host, port, timeoutMs }) {
+  return new Promise((resolve, reject) => {
+    const socket = net.createConnection({ host, port });
+    const timer = setTimeout(() => {
+      socket.destroy(new Error("TCP connect timeout"));
+    }, timeoutMs);
+    socket.once("connect", () => {
+      clearTimeout(timer);
+      socket.end();
+      resolve();
+    });
+    socket.once("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
+}
+
+function connectTls({ host, port, servername, timeoutMs }) {
+  return new Promise((resolve, reject) => {
+    const socket = tls.connect({ host, port, servername, rejectUnauthorized: false });
+    const timer = setTimeout(() => {
+      socket.destroy(new Error("TLS handshake timeout"));
+    }, timeoutMs);
+    socket.once("secureConnect", () => {
+      clearTimeout(timer);
+      const info = {
+        authorized: socket.authorized,
+        authorizationError: socket.authorizationError || null
+      };
+      socket.end();
+      resolve(info);
+    });
+    socket.once("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
+}
+
+function formatDiagError(error, started) {
+  return {
+    ok: false,
+    elapsedMs: Date.now() - started,
+    error: error instanceof Error ? error.message : String(error),
+    code: error && typeof error === "object" && "code" in error ? error.code : undefined
+  };
 }
 
 if (process.env.MCP_TRANSPORT === "http") {
