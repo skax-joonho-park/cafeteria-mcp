@@ -167,6 +167,54 @@ function startHttp() {
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/diag/fetch") {
+      const target = url.searchParams.get("target");
+      const targets = {
+        google: "https://www.google.com/",
+        cafeteria: process.env.CAFETERIA_API_URL || ""
+      };
+      const targetUrl = target && Object.hasOwn(targets, target) ? targets[target] : "";
+
+      if (!targetUrl) {
+        res.writeHead(400, { "content-type": "application/json; charset=utf-8" });
+        res.end(JSON.stringify({ ok: false, error: "Use target=google or target=cafeteria." }));
+        return;
+      }
+
+      const started = Date.now();
+      try {
+        const response = await fetch(targetUrl, {
+          method: "HEAD",
+          signal: AbortSignal.timeout(10000),
+          headers: {
+            "user-agent": "Mozilla/5.0"
+          }
+        });
+        res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+        res.end(
+          JSON.stringify({
+            ok: true,
+            target,
+            status: response.status,
+            elapsedMs: Date.now() - started
+          })
+        );
+      } catch (error) {
+        res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+        res.end(
+          JSON.stringify({
+            ok: false,
+            target,
+            elapsedMs: Date.now() - started,
+            error: error instanceof Error ? error.message : String(error),
+            cause: error?.cause instanceof Error ? error.cause.message : undefined,
+            code: error?.cause && typeof error.cause === "object" && "code" in error.cause ? error.cause.code : undefined
+          })
+        );
+      }
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/sse") {
       const sessionId = randomUUID();
       res.writeHead(200, {
