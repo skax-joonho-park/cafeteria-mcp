@@ -73,15 +73,20 @@ async function forwardToSeoul(req: Request, url: URL) {
   url.searchParams.set("forceFunctionRegion", "ap-northeast-2");
   url.searchParams.set("regionForwarded", "1");
 
-  const headers = new Headers(req.headers);
+  const headers = new Headers();
+  headers.set("accept", "application/json");
+  headers.set("content-type", req.headers.get("content-type") || "application/json");
   headers.set("x-region", "ap-northeast-2");
-  headers.delete("host");
-  headers.delete("content-length");
+
+  const authorization = req.headers.get("authorization");
+  const apikey = req.headers.get("apikey");
+  if (authorization) headers.set("authorization", authorization);
+  if (apikey) headers.set("apikey", apikey);
 
   const response = await fetch(url, {
     method: req.method,
     headers,
-    body,
+    body: body ? new Uint8Array(body) : undefined,
   });
 
   return new Response(response.body, {
