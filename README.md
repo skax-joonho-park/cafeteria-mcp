@@ -97,6 +97,16 @@ https://<project-ref>.functions.supabase.co/cafeteria-probe?target=google
 https://<project-ref>.functions.supabase.co/cafeteria-probe?target=cafeteria&ymd=20260608&mealType=LN
 ```
 
+## Supabase MCP
+
+The Supabase Edge Function MCP endpoint is available at:
+
+```text
+https://<project-ref>.functions.supabase.co/cafeteria-mcp
+```
+
+It supports MCP JSON-RPC methods including `initialize`, `tools/list`, and `tools/call`.
+
 ## Tests
 
 ```bash

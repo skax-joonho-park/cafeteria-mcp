@@ -2,3 +2,6 @@ project_id = "cafeteria-mcp"
 
 [functions.cafeteria-probe]
 verify_jwt = false
+
+[functions.cafeteria-mcp]
+verify_jwt = false
