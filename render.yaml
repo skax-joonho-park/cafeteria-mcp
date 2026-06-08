@@ -19,3 +19,5 @@ services:
         sync: false
       - key: CAFETERIA_ORIGIN
         sync: false
+      - key: CAFETERIA_SKIP_TLS_VERIFY
+        sync: false

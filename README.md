@@ -15,10 +15,12 @@ CAFETERIA_API_URL=<form-post-api-url>
 CAFETERIA_CAMPUS=<campus-code>
 CAFETERIA_SEQ=<cafeteria-sequence>
 CAFETERIA_ORIGIN=<optional-origin-header>
+CAFETERIA_SKIP_TLS_VERIFY=false
 MCP_TRANSPORT=http
 ```
 
 `CAFETERIA_ORIGIN` is optional. When omitted, the origin is derived from `CAFETERIA_API_URL`.
+Set `CAFETERIA_SKIP_TLS_VERIFY=true` only when the upstream cafeteria API requires curl-style `-k` behavior.
 
 ## Tool
 

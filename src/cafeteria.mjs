@@ -1,3 +1,5 @@
+import https from "node:https";
+
 const API_URL = process.env.CAFETERIA_API_URL || "";
 
 export const CAMPUS = process.env.CAFETERIA_CAMPUS || "";
@@ -43,34 +45,29 @@ export async function fetchCafeteriaMenu({ ymd, mealType = "LN" } = {}) {
   const normalizedYmd = normalizeDate(ymd);
   const normalizedMealType = normalizeMealType(mealType);
   const apiOrigin = process.env.CAFETERIA_ORIGIN || new URL(API_URL).origin;
-  const form = new URLSearchParams({
+  const query = new URLSearchParams({
     campus: CAMPUS,
     cafeteriaSeq: CAFETERIA_SEQ,
     mealType: normalizedMealType,
     ymd: normalizedYmd
   });
+  const requestUrl = new URL(API_URL);
+  for (const [key, value] of query) {
+    requestUrl.searchParams.set(key, value);
+  }
 
-  let response;
+  let text;
   try {
-    response = await fetch(API_URL, {
-      method: "POST",
+    text = await requestText(requestUrl, {
       headers: {
-        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "user-agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "user-agent": "Mozilla/5.0",
         "x-requested-with": "XMLHttpRequest",
         origin: apiOrigin,
         referer: `${apiOrigin}/`
-      },
-      body: form
+      }
     });
   } catch (error) {
     throw new Error(`식당 API 네트워크 호출 실패: ${formatError(error)}`);
-  }
-
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(`식당 API 호출 실패: HTTP ${response.status} ${text.slice(0, 300)}`);
   }
 
   let payload;
@@ -92,6 +89,41 @@ export async function fetchCafeteriaMenu({ ymd, mealType = "LN" } = {}) {
     precipitation: payload.PRECIPITATION || "",
     menus
   };
+}
+
+function requestText(url, { headers }) {
+  const skipTlsVerify = process.env.CAFETERIA_SKIP_TLS_VERIFY === "true";
+
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      url,
+      {
+        method: "GET",
+        headers,
+        timeout: 30000,
+        rejectUnauthorized: !skipTlsVerify
+      },
+      (res) => {
+        const chunks = [];
+        res.setEncoding("utf8");
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", () => {
+          const text = chunks.join("");
+          if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+            reject(new Error(`식당 API 호출 실패: HTTP ${res.statusCode || "unknown"} ${text.slice(0, 300)}`));
+            return;
+          }
+          resolve(text);
+        });
+      }
+    );
+
+    req.on("timeout", () => {
+      req.destroy(new Error("식당 API 연결 시간이 초과되었습니다."));
+    });
+    req.on("error", reject);
+    req.end();
+  });
 }
 
 function formatError(error) {

@@ -39,6 +39,8 @@ services:
         sync: false
       - key: CAFETERIA_SEQ
         sync: false
+      - key: CAFETERIA_SKIP_TLS_VERIFY
+        sync: false
 ```
 
 ## 등록 예시
