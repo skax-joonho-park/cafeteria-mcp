@@ -69,30 +69,15 @@ function shouldForwardToSeoul(req: Request, url: URL) {
 }
 
 async function forwardToSeoul(req: Request, url: URL) {
-  const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer();
   url.searchParams.set("forceFunctionRegion", "ap-northeast-2");
   url.searchParams.set("regionForwarded", "1");
 
-  const headers = new Headers();
-  headers.set("accept", "application/json");
-  headers.set("content-type", req.headers.get("content-type") || "application/json");
-  headers.set("x-region", "ap-northeast-2");
-
-  const authorization = req.headers.get("authorization");
-  const apikey = req.headers.get("apikey");
-  if (authorization) headers.set("authorization", authorization);
-  if (apikey) headers.set("apikey", apikey);
-
-  const response = await fetch(url, {
-    method: req.method,
-    headers,
-    body: body ? new Uint8Array(body) : undefined,
-  });
-
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: response.headers,
+  return new Response(null, {
+    status: 307,
+    headers: {
+      ...corsHeaders(),
+      location: url.toString(),
+    },
   });
 }
 
