@@ -50,18 +50,23 @@ export async function fetchCafeteriaMenu({ ymd, mealType = "LN" } = {}) {
     ymd: normalizedYmd
   });
 
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "user-agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
-      "x-requested-with": "XMLHttpRequest",
-      origin: apiOrigin,
-      referer: `${apiOrigin}/`
-    },
-    body: form
-  });
+  let response;
+  try {
+    response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "user-agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "x-requested-with": "XMLHttpRequest",
+        origin: apiOrigin,
+        referer: `${apiOrigin}/`
+      },
+      body: form
+    });
+  } catch (error) {
+    throw new Error(`식당 API 네트워크 호출 실패: ${formatError(error)}`);
+  }
 
   const text = await response.text();
   if (!response.ok) {
@@ -87,6 +92,13 @@ export async function fetchCafeteriaMenu({ ymd, mealType = "LN" } = {}) {
     precipitation: payload.PRECIPITATION || "",
     menus
   };
+}
+
+function formatError(error) {
+  if (!(error instanceof Error)) return String(error);
+  const cause = error.cause instanceof Error ? `; cause=${error.cause.message}` : "";
+  const code = error.cause && typeof error.cause === "object" && "code" in error.cause ? `; code=${error.cause.code}` : "";
+  return `${error.message}${cause}${code}`;
 }
 
 export function normalizeMenuItem(item) {
