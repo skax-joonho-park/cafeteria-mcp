@@ -61,7 +61,9 @@ export async function fetchCafeteriaMenu({ ymd, mealType = "LN" } = {}) {
     text = await requestText(requestUrl, {
       headers: {
         accept: "application/json,text/plain,*/*",
-        "user-agent": "Mozilla/5.0",
+        "content-length": "0",
+        "user-agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
         "x-requested-with": "XMLHttpRequest",
         origin: apiOrigin,
         referer: `${apiOrigin}/`
@@ -99,7 +101,7 @@ function requestText(url, { headers }, redirectCount = 0) {
     const req = https.request(
       url,
       {
-        method: "GET",
+        method: "POST",
         headers,
         family: 4,
         timeout: 30000,

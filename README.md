@@ -20,6 +20,7 @@ MCP_TRANSPORT=http
 ```
 
 `CAFETERIA_ORIGIN` is optional. When omitted, the origin is derived from `CAFETERIA_API_URL`.
+The upstream request is sent as `POST` with query parameters and `Content-Length: 0`.
 Set `CAFETERIA_SKIP_TLS_VERIFY=true` only when the upstream cafeteria API requires curl-style `-k` behavior.
 
 ## Tool
