@@ -60,6 +60,7 @@ export async function fetchCafeteriaMenu({ ymd, mealType = "LN" } = {}) {
   try {
     text = await requestText(requestUrl, {
       headers: {
+        accept: "application/json,text/plain,*/*",
         "user-agent": "Mozilla/5.0",
         "x-requested-with": "XMLHttpRequest",
         origin: apiOrigin,
@@ -91,7 +92,7 @@ export async function fetchCafeteriaMenu({ ymd, mealType = "LN" } = {}) {
   };
 }
 
-function requestText(url, { headers }) {
+function requestText(url, { headers }, redirectCount = 0) {
   const skipTlsVerify = process.env.CAFETERIA_SKIP_TLS_VERIFY === "true";
 
   return new Promise((resolve, reject) => {
@@ -100,6 +101,7 @@ function requestText(url, { headers }) {
       {
         method: "GET",
         headers,
+        family: 4,
         timeout: 30000,
         rejectUnauthorized: !skipTlsVerify
       },
@@ -109,6 +111,15 @@ function requestText(url, { headers }) {
         res.on("data", (chunk) => chunks.push(chunk));
         res.on("end", () => {
           const text = chunks.join("");
+          if ([301, 302, 303, 307, 308].includes(res.statusCode || 0) && res.headers.location) {
+            if (redirectCount >= 5) {
+              reject(new Error("식당 API redirect 횟수가 너무 많습니다."));
+              return;
+            }
+            const nextUrl = new URL(res.headers.location, url);
+            requestText(nextUrl, { headers }, redirectCount + 1).then(resolve, reject);
+            return;
+          }
           if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
             reject(new Error(`식당 API 호출 실패: HTTP ${res.statusCode || "unknown"} ${text.slice(0, 300)}`));
             return;
