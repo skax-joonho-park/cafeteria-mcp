@@ -20,8 +20,8 @@ const tool = {
       },
       mealType: {
         type: "string",
-        enum: ["LN", "DN"],
-        description: "LN은 점심, DN은 저녁입니다.",
+        enum: ["LN", "DN", "점심", "저녁", "중식", "석식", "lunch", "dinner"],
+        description: "식사 구분입니다. 점심/중식/lunch는 LN으로, 저녁/석식/dinner는 DN으로 처리합니다.",
       },
     },
     required: [],
@@ -251,9 +251,20 @@ function normalizeDate(value: unknown) {
 }
 
 function normalizeMealType(value: unknown) {
-  const mealType = String(value || "LN").toUpperCase();
+  const raw = String(value || "LN").trim();
+  const aliases: Record<string, string> = {
+    LN: "LN",
+    LUNCH: "LN",
+    "점심": "LN",
+    "중식": "LN",
+    DN: "DN",
+    DINNER: "DN",
+    "저녁": "DN",
+    "석식": "DN",
+  };
+  const mealType = aliases[raw.toUpperCase()] || aliases[raw];
   if (!Object.hasOwn(mealTypes, mealType)) {
-    throw new Error("mealType은 LN(점심) 또는 DN(저녁)만 사용할 수 있습니다.");
+    throw new Error("mealType은 LN(점심/중식/lunch) 또는 DN(저녁/석식/dinner)만 사용할 수 있습니다.");
   }
   return mealType;
 }
